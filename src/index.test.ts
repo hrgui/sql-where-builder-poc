@@ -1,17 +1,11 @@
 import { createWhereClause, processColumnExp } from "./index";
 
 describe("createWhereClause", () => {
-  it(`should process ${JSON.stringify({
+  const andClause = {
     _and: [{ rating: { _gte: 4 } }, { published_on: { _gte: "2018-01-01" } }],
-  })}`, () => {
-    expect(
-      createWhereClause({
-        _and: [
-          { rating: { _gte: 4 } },
-          { published_on: { _gte: "2018-01-01" } },
-        ],
-      })
-    ).toMatchInlineSnapshot(`
+  };
+  it(`should process ${JSON.stringify(andClause)}`, () => {
+    expect(createWhereClause(andClause)).toMatchInlineSnapshot(`
       Object {
         "params": Object {
           "$published_on___gte": "2018-01-01",
@@ -22,16 +16,13 @@ describe("createWhereClause", () => {
     `);
   });
 
-  it(`should process ${JSON.stringify({
+  const flattenedAndClause = {
     rating: { _gte: 4 },
     published_on: { _gte: "2018-01-01" },
-  })}`, () => {
-    expect(
-      createWhereClause({
-        rating: { _gte: 4 },
-        published_on: { _gte: "2018-01-01" },
-      })
-    ).toMatchInlineSnapshot(`
+  };
+
+  it(`should process ${JSON.stringify(flattenedAndClause)}`, () => {
+    expect(createWhereClause(flattenedAndClause)).toMatchInlineSnapshot(`
       Object {
         "params": Object {
           "$published_on___gte": "2018-01-01",
@@ -42,24 +33,17 @@ describe("createWhereClause", () => {
     `);
   });
 
-  it(`should process ${JSON.stringify({
+  const orClause = {
     _or: [
       {
         rating: { _gte: 4 },
       },
       { published_on: { _gte: "2018-01-01" } },
     ],
-  })}`, () => {
-    expect(
-      createWhereClause({
-        _or: [
-          {
-            rating: { _gte: 4 },
-          },
-          { published_on: { _gte: "2018-01-01" } },
-        ],
-      })
-    ).toMatchInlineSnapshot(`
+  };
+
+  it(`should process ${JSON.stringify(orClause)}`, () => {
+    expect(createWhereClause(orClause)).toMatchInlineSnapshot(`
       Object {
         "params": Object {
           "$published_on___gte": "2018-01-01",
@@ -70,44 +54,44 @@ describe("createWhereClause", () => {
     `);
   });
 
-  fit(`should process really complex query with ()'s`, () => {
-    expect(
-      createWhereClause({
-        _and: [
+  const complexClause = {
+    _and: [
+      {
+        price: {
+          _lt: 1500,
+          _gt: 500,
+        },
+      },
+      {
+        category: {
+          _in: ["Computers", "Video Games"],
+        },
+      },
+      {
+        name: {
+          _ilike: "%apple%",
+        },
+      },
+      {
+        _or: [
           {
-            price: {
-              _lt: 1500,
-              _gt: 500,
+            color: {
+              _eq: "red",
             },
           },
           {
-            category: {
-              _in: ["Computers", "Video Games"],
-            },
+            rating: { _gte: 4 },
           },
           {
-            name: {
-              _ilike: "%apple%",
-            },
-          },
-          {
-            _or: [
-              {
-                color: {
-                  _eq: "red",
-                },
-              },
-              {
-                rating: { _gte: 4 },
-              },
-              {
-                best_match: { _eq: "true" },
-              },
-            ],
+            best_match: { _eq: "true" },
           },
         ],
-      })
-    ).toMatchInlineSnapshot(`
+      },
+    ],
+  };
+
+  it(`should process really complex query with ()'s`, () => {
+    expect(createWhereClause(complexClause)).toMatchInlineSnapshot(`
       Object {
         "params": Object {
           "$best_match___eq": "true",
@@ -122,6 +106,27 @@ describe("createWhereClause", () => {
           "$rating___gte": 4,
         },
         "query": "price < $price___lt AND price > $price___gt AND category IN $category___in AND name ILIKE $name___ilike AND ( color = $color___eq OR rating >= $rating___gte OR best_match = $best_match___eq )",
+      }
+    `);
+  });
+
+  const nestedClause = {
+    _and: [
+      {
+        tags: {
+          key: { _eq: "season" },
+        },
+      },
+    ],
+  };
+
+  it(`should process nestedClause`, () => {
+    expect(createWhereClause(nestedClause)).toMatchInlineSnapshot(`
+      Object {
+        "params": Object {
+          "$tags__key___eq": "season",
+        },
+        "query": "tags.key = $tags__key___eq",
       }
     `);
   });
